@@ -419,6 +419,31 @@ namespace VolumeRendering
             else return -1f;
         }
 
+        void UpdateGPUGaussianValues(int minZ, int maxZ, int minY, int maxY, int minX, int maxX, int xCenter, int yCenter, int zCenter, int texDepth, int kernelSize, float coefIntensity, float mu, float sigma)
+        {
+            computeShader.SetInt(minZId, minZ);
+            computeShader.SetInt(maxZId, maxZ);
+
+            computeShader.SetInt(minYId, minY);
+            computeShader.SetInt(maxYId, maxY);
+
+            computeShader.SetInt(minXId, minX);
+            computeShader.SetInt(maxXId, maxX);
+
+            computeShader.SetInt(xCenterId, xCenter);
+            computeShader.SetInt(yCenterId, yCenter);
+            computeShader.SetInt(zCenterId, zCenter);
+
+            computeShader.SetInt(texDepthId, texDepth);
+            computeShader.SetInt(kernelSizeId, kernelSize);
+
+            computeShader.SetFloat(coefIntensityId, coefIntensity);
+            computeShader.SetFloat(muId, mu);
+            computeShader.SetFloat(sigmaId, sigma);
+
+            computeShader.SetBuffer(0, colorsBufferId, colorsBuffer);
+        }
+
         // compute the gaussian distribution ant apply it to the texture
         public void gaussSpheres(Vector3[] pointCloud, ref Texture3D tex3D, int kernelSize)
         {
