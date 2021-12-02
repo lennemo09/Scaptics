@@ -57,7 +57,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_Materials:
-  - {fileID: 0}
+  - {fileID: 2100000, guid: 5b881288c81d0754382e9955cd8b3d78, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -130,3 +130,4 @@ MonoBehaviour:
   sliceYMax: 1
   sliceZMin: 0
   sliceZMax: 1
+  computeShader: {fileID: 7200000, guid: 8fb7bd572c10a1645865a7f45c4618c8, type: 3}
