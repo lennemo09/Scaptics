@@ -115,6 +115,28 @@ namespace VolumeRendering
         [Range(0f, 1f)] public float sliceYMin = 0.0f, sliceYMax = 1.0f;
         [Range(0f, 1f)] public float sliceZMin = 0.0f, sliceZMax = 1.0f;
 
+        // Compute Shader Data
+        [SerializeField]
+        ComputeShader computeShader;
+        ComputeBuffer colorsBuffer;
+
+        static readonly int
+            minZId = Shader.PropertyToID("_minZ"),
+            maxZId = Shader.PropertyToID("_maxZ"),
+            minYId = Shader.PropertyToID("_minY"),
+            maxYId = Shader.PropertyToID("_maxY"),
+            minXId = Shader.PropertyToID("_minX"),
+            maxXId = Shader.PropertyToID("_maxX"),
+            xCenterId = Shader.PropertyToID("_xCenter"),
+            yCenterId = Shader.PropertyToID("_yCenter"),
+            zCenterId = Shader.PropertyToID("_zCenter"),
+            texDepthId = Shader.PropertyToID("_texDepth"),
+            kernelSizeId = Shader.PropertyToID("_kernelSize"),
+            coefIntensityId = Shader.PropertyToID("_coefIntensity"),
+            muId = Shader.PropertyToID("_mu"),
+            sigmaId = Shader.PropertyToID("_sigma"),
+            colorsBufferId = Shader.PropertyToID("_ColorsBuffer");
+
         protected void Start()
         {
             //Stopwatch stopWatch = new Stopwatch();
