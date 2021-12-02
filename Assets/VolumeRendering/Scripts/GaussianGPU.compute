@@ -1,0 +1,102 @@
+﻿#pragma kernel GaussianComputeMain
+#define PI 3.14159265358979323846
+
+struct ColorElement
+{
+	float r;
+	float g;
+	float b;
+};
+
+RWStructuredBuffer<ColorElement> _ColorsBuffer;
+
+int _minZ; // depthBin - kernelSize
+int _maxZ; // depthBin + kernelSize
+int _minY; // yCenter - kernelSize
+int _maxY; // yCenter + kernelSize
+int _minX; // xCenter - kernelSize
+int _maxX; // xCenter + kernelSize
+int _xCenter;
+int _yCenter;
+int _zCenter;
+
+int _texDepth;
+int _kernelSize;
+
+float _coefIntensity;
+float _mu;
+float _sigma;
+
+float gauss(float x, float mu, float sigma)
+{
+	return 1.0f / sqrt(2.0f * sigma * sigma * PI) * exp(-((x - mu) * (x - mu)) / (2.0f * sigma * sigma));
+}
+
+//brush sphere
+bool brushSphere(float3 center, float radius, float3 testPoint)
+{
+	float3 displacementToCenter = testPoint - center;
+	float radiusSqr = radius;
+	float magnitude = length(displacementToCenter);
+	bool intersects = magnitude < radiusSqr;
+
+	return intersects;
+}
+
+float3 GetXYZ(uint3 id) {
+	float3 xyz;
+	xyz.x = (int)id.x + _minX;
+	xyz.y = (int)id.y + _minY;
+	xyz.z = (int)id.z + _minZ;
+	return xyz;
+}
+
+void SetColor(int x, int y, int z) {
+	//test we are still in the matrix:
+	if (z >= 0 && z < _texDepth && x >= 0 && x < _texDepth && y >= 0 && y < _texDepth)
+	{
+		int3 kernelPoint;
+		kernelPoint.x = x;
+		kernelPoint.y = y;
+		kernelPoint.z = z;
+
+		int3 center;
+		center.x = _xCenter;
+		center.y = _yCenter;
+		center.z = _zCenter;
+
+		float3 origin;
+		origin.x = _minX;
+		origin.y = _minY;
+		origin.z = _minZ;
+
+		float distanceMax = distance(origin, center);
+
+		//test if in the sphere of radius kernel
+		if (brushSphere(center, (float)_kernelSize, kernelPoint))
+		{
+			float dist = distance(kernelPoint, center);
+			dist = dist / distanceMax;
+
+			//apply kernel
+
+			float gaussianValue = gauss(dist, _mu, _sigma);
+
+			_ColorsBuffer[x + (y * _texDepth) + (z * _texDepth * _texDepth)].r += gaussianValue * _coefIntensity;
+			_ColorsBuffer[x + (y * _texDepth) + (z * _texDepth * _texDepth)].g += gaussianValue * _coefIntensity;
+			_ColorsBuffer[x + (y * _texDepth) + (z * _texDepth * _texDepth)].b += gaussianValue * _coefIntensity;
+
+		}
+	}
+}
+
+[numthreads(4, 4, 4)]
+void GaussianComputeMain(uint3 id : SV_DispatchThreadID)
+{
+	float3 xyz = GetXYZ(id);
+
+	if (xyz.x < _maxX && xyz.y < _maxY && xyz.z < _maxZ) {
+		SetColor(xyz.x, xyz.y, xyz.z);
+	}
+}
+
