@@ -444,6 +444,37 @@ namespace VolumeRendering
             computeShader.SetBuffer(0, colorsBufferId, colorsBuffer);
         }
 
+        struct ColorElement
+        {
+            public float r;
+            public float g;
+            public float b;
+        };
+
+        ColorElement[] GetColorElementsArray(Color[] textureColors)
+        {
+            ColorElement[] colorElementsArray = new ColorElement[textureColors.Length];
+
+            for (int i = 0; i < textureColors.Length; i++)
+            {
+                colorElementsArray[i].r = textureColors[i].r;
+                colorElementsArray[i].g = textureColors[i].g;
+                colorElementsArray[i].b = textureColors[i].b;
+            }
+
+            return colorElementsArray;
+        }
+
+        void ColorElementsToTextureColors(ColorElement[] colorElementsArray, Color[] textureColors)
+        {
+            for (int i = 0; i < colorElementsArray.Length; i++)
+            {
+                textureColors[i].r = colorElementsArray[i].r;
+                textureColors[i].g = colorElementsArray[i].g;
+                textureColors[i].b = colorElementsArray[i].b;
+            }
+        }
+
         // compute the gaussian distribution ant apply it to the texture
         public void gaussSpheres(Vector3[] pointCloud, ref Texture3D tex3D, int kernelSize)
         {
