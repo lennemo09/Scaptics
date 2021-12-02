@@ -483,6 +483,10 @@ namespace VolumeRendering
             //pull out the color array from the texture
             textureColors = tex3D.GetPixels();
 
+            // Array of color element: Similar to Color[] textureColors but each element is only a float3 (rgb).
+            // Populate with existing color data from textureColors (getting only rgb of each element).
+            ColorElement[] colorElementsArray = GetColorElementsArray(textureColors);
+
             for (int i = 0; i < pointCloud.Length; i++)
             {
                 // find the depth bin
@@ -491,38 +495,49 @@ namespace VolumeRendering
                 int yCenter = Mathf.RoundToInt(pointCloud[i].y * texDepth);
                 Vector3 center = new Vector3(xCenter, yCenter, depthBin);
 
-                float distanceMax = Vector3.Distance(new Vector3(xCenter - kernelSize, yCenter - kernelSize, depthBin - kernelSize), center);
+                // distanceMax will be calculated on the compute shader
 
-                for (int z = depthBin - kernelSize; z < depthBin + kernelSize; z++)
-                {
-                    for (int x = xCenter - kernelSize; x < xCenter + kernelSize; x++)
-                    {
-                        for (int y = yCenter - kernelSize; y < yCenter + kernelSize; y++)
-                        {
-                            //test we are still in the matrix:
-                            if (z >= 0 && z < texDepth && x >= 0 && x < texDepth && y >= 0 && y < texDepth)
-                            {
-                                Vector3 kernelPoint = new Vector3(x, y, z);
-                                //test if in the sphere of radius kernel
-                                if (brushSphere(center, (float)kernelSize, kernelPoint))
-                                {
-                                    float distance = Vector3.Distance(kernelPoint, center);
-                                    distance /= distanceMax;
-                                    // print(distance);
-                                    //apply kernel
+                // Pre-compute X/Y/Z ranges for compute buffer thread group to use for assigning sections to threads
+                int minZ = depthBin - kernelSize;
+                int maxZ = depthBin + kernelSize;
+                int minY = yCenter - kernelSize;
+                int maxY = yCenter + kernelSize;
+                int minX = xCenter - kernelSize;
+                int maxX = xCenter + kernelSize;
+                int zCenter = depthBin;
 
-                                    float gaussianValue = (float)gauss((double)distance, mu, sigma);
+                // Pass the necessary values to compute buffer to calculate color
+                UpdateGPUGaussianValues(minZ, maxZ, minY, maxY, minX, maxX, xCenter, yCenter, zCenter, texDepth, kernelSize, coefIntensity, mu, sigma);
 
-                                    textureColors[x + (y * texDepth) + (z * texDepth * texDepth)].r += gaussianValue * coefIntensity;
-                                    textureColors[x + (y * texDepth) + (z * texDepth * texDepth)].g += gaussianValue * coefIntensity;
-                                    textureColors[x + (y * texDepth) + (z * texDepth * texDepth)].b += gaussianValue * coefIntensity;
+                // Create new compute buffer the length of textureColors for output
+                colorsBuffer = new ComputeBuffer(colorElementsArray.Length, 3 * 4);
+                // Set the color data to compute buffer
+                colorsBuffer.SetData(colorElementsArray);
 
+                // Number of groups in each direction
+                // There will be 4x4x4 = 64 threads for each warp.
+                int groupsX = Mathf.CeilToInt(maxX - minX / 4f);
+                int groupsY = Mathf.CeilToInt(maxY - minY / 4f);
+                int groupsZ = Mathf.CeilToInt(maxZ - minZ / 4f);
 
-                                }
-                            }
-                        }
-                    }
-                }
+                print($"GroupsX: {groupsX}, GroupsY: {groupsY}, GroupsZ: {groupsZ}");
+
+                // Dispatch the compute shader
+                computeShader.Dispatch(0, groupsX, groupsY, groupsZ);
+
+                // Create an empty output array to store the computed colors from compute shader
+                ColorElement[] outputElementsArray = new ColorElement[colorElementsArray.Length];
+
+                // Populate output array with the color data from compute buffer
+                colorsBuffer.GetData(outputElementsArray);
+
+                // Release compute buffer for next point in point cloud
+                colorsBuffer.Release();
+                colorsBuffer = null;
+
+                // Transfer data from ColorElement[] to Color[]
+                ColorElementsToTextureColors(outputElementsArray, textureColors);
+                print($"inArray:{colorElementsArray[1]}, outArray:{outputElementsArray[1]}");
             }
 
             _shapeGauss = textureColors;
