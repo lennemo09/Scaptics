@@ -90,7 +90,7 @@ void SetColor(int x, int y, int z) {
 	}
 }
 
-[numthreads(4, 4, 4)]
+[numthreads(8, 8, 8)]
 void GaussianComputeMain(uint3 id : SV_DispatchThreadID)
 {
 	float3 xyz = GetXYZ(id);
