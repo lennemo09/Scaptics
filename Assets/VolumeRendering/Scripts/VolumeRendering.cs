@@ -120,25 +120,41 @@ namespace VolumeRendering
         ComputeShader computeShader;
         ComputeBuffer colorsBuffer;
 
-        static readonly int
-            minZId = Shader.PropertyToID("_minZ"),
-            maxZId = Shader.PropertyToID("_maxZ"),
-            minYId = Shader.PropertyToID("_minY"),
-            maxYId = Shader.PropertyToID("_maxY"),
-            minXId = Shader.PropertyToID("_minX"),
-            maxXId = Shader.PropertyToID("_maxX"),
-            xCenterId = Shader.PropertyToID("_xCenter"),
-            yCenterId = Shader.PropertyToID("_yCenter"),
-            zCenterId = Shader.PropertyToID("_zCenter"),
-            texDepthId = Shader.PropertyToID("_texDepth"),
-            kernelSizeId = Shader.PropertyToID("_kernelSize"),
-            coefIntensityId = Shader.PropertyToID("_coefIntensity"),
-            muId = Shader.PropertyToID("_mu"),
-            sigmaId = Shader.PropertyToID("_sigma"),
-            colorsBufferId = Shader.PropertyToID("_ColorsBuffer");
+        int
+            minZId,
+            maxZId,
+            minYId,
+            maxYId,
+            minXId,
+            maxXId,
+            xCenterId,
+            yCenterId,
+            zCenterId,
+            texDepthId,
+            kernelSizeId,
+            coefIntensityId,
+            muId,
+            sigmaId,
+            colorsBufferId;
 
         protected void Start()
         {
+            minZId = Shader.PropertyToID("_minZ");
+            maxZId = Shader.PropertyToID("_maxZ");
+            minYId = Shader.PropertyToID("_minY");
+            maxYId = Shader.PropertyToID("_maxY");
+            minXId = Shader.PropertyToID("_minX");
+            maxXId = Shader.PropertyToID("_maxX");
+            xCenterId = Shader.PropertyToID("_xCenter");
+            yCenterId = Shader.PropertyToID("_yCenter");
+            zCenterId = Shader.PropertyToID("_zCenter");
+            texDepthId = Shader.PropertyToID("_texDepth");
+            kernelSizeId = Shader.PropertyToID("_kernelSize");
+            coefIntensityId = Shader.PropertyToID("_coefIntensity");
+            muId = Shader.PropertyToID("_mu");
+            sigmaId = Shader.PropertyToID("_sigma");
+            colorsBufferId = Shader.PropertyToID("_ColorsBuffer");
+
             //Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
             time = stopWatch.Elapsed;
@@ -155,7 +171,7 @@ namespace VolumeRendering
             float[] ys = data["y"].Data;
             float[] zs = data["z"].Data;
 
-            data2 = InitialiseRandomData(size);
+            //data2 = InitialiseRandomData(size);
 
             positions = new Vector3[100];
 
@@ -173,8 +189,9 @@ namespace VolumeRendering
 
             LogPipeline();
 
-            /*stopWatch.Stop();
-            print(stopWatch.Elapsed);*/
+
+            stopWatch.Stop();
+            print(stopWatch.Elapsed);
 
         }
 
@@ -185,20 +202,20 @@ namespace VolumeRendering
             gaussSpheres(positions, ref volumeGaus, kernelSize);
 
             //computing the LoG
-            _shape2 = applyLpoGConvolutionColor();
+            //_shape2 = applyLpoGConvolutionColor();
 
-            _shape3 = volumeLoG.GetPixels();
+            //_shape3 = volumeLoG.GetPixels();
 
-            for (int i = 0; i < volumeLoG.depth; i++)
-            {
-                for (int j = 0; j < volumeLoG.depth; j++)
-                {
-                    for (int k = 0; k < volumeLoG.depth; k++)
-                    {
-                        _shape3[(k * volumeLoG.depth * volumeLoG.depth) + j * volumeLoG.depth + i] = _shape2[i, j, k];
-                    }
-                }
-            }
+            //for (int i = 0; i < volumeLoG.depth; i++)
+            //{
+            //    for (int j = 0; j < volumeLoG.depth; j++)
+            //    {
+            //        for (int k = 0; k < volumeLoG.depth; k++)
+            //        {
+            //            _shape3[(k * volumeLoG.depth * volumeLoG.depth) + j * volumeLoG.depth + i] = _shape2[i, j, k];
+            //        }
+            //    }
+            //}
 
             //apply color array to the Volume texture according to the filter
 
@@ -213,14 +230,14 @@ namespace VolumeRendering
             material.SetVector("_SliceMin", new Vector3(sliceXMin, sliceYMin, sliceZMin));
             material.SetVector("_SliceMax", new Vector3(sliceXMax, sliceYMax, sliceZMax));
 
-            if (isLog)
-            {
-                VolumeHandling(ref volumeLoG);
-            }
-            else
-            {
-                VolumeHandling(ref volumeGaus);
-            }
+            //if (isLog)
+            //{
+            //    VolumeHandling(ref volumeLoG);
+            //}
+            //else
+            //{
+            //    VolumeHandling(ref volumeGaus);
+            //}
         }
 
         // load the texture and apply the vibriation
@@ -283,10 +300,10 @@ namespace VolumeRendering
 
             derivativeMemory = derivative;
 
-            for (int i = 0; i < 10; i++)
-            {
-                print(positions[i]);
-            }
+            //for (int i = 0; i < 10; i++)
+            //{
+            //    print(positions[i]);
+            //}
 
         }
 
@@ -506,13 +523,13 @@ namespace VolumeRendering
                 int maxX = xCenter + kernelSize;
                 int zCenter = depthBin;
 
-                // Pass the necessary values to compute buffer to calculate color
-                UpdateGPUGaussianValues(minZ, maxZ, minY, maxY, minX, maxX, xCenter, yCenter, zCenter, texDepth, kernelSize, coefIntensity, mu, sigma);
-
                 // Create new compute buffer the length of textureColors for output
                 colorsBuffer = new ComputeBuffer(colorElementsArray.Length, 3 * 4);
                 // Set the color data to compute buffer
                 colorsBuffer.SetData(colorElementsArray);
+
+                // Pass the necessary values to compute buffer to calculate color
+                UpdateGPUGaussianValues(minZ, maxZ, minY, maxY, minX, maxX, xCenter, yCenter, zCenter, texDepth, kernelSize, coefIntensity, mu, sigma);
 
                 // Number of groups in each direction
                 // There will be 4x4x4 = 64 threads for each warp.
@@ -520,7 +537,7 @@ namespace VolumeRendering
                 int groupsY = Mathf.CeilToInt(maxY - minY / 4f);
                 int groupsZ = Mathf.CeilToInt(maxZ - minZ / 4f);
 
-                print($"GroupsX: {groupsX}, GroupsY: {groupsY}, GroupsZ: {groupsZ}");
+                //print($"GroupsX: {groupsX}, GroupsY: {groupsY}, GroupsZ: {groupsZ}");
 
                 // Dispatch the compute shader
                 computeShader.Dispatch(0, groupsX, groupsY, groupsZ);
