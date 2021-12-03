@@ -137,7 +137,7 @@ namespace VolumeRendering
             sigmaId,
             colorsBufferId;
 
-        protected void Start()
+        void GetComputeShaderIds()
         {
             minZId = Shader.PropertyToID("_minZ");
             maxZId = Shader.PropertyToID("_maxZ");
@@ -154,10 +154,15 @@ namespace VolumeRendering
             muId = Shader.PropertyToID("_mu");
             sigmaId = Shader.PropertyToID("_sigma");
             colorsBufferId = Shader.PropertyToID("_ColorsBuffer");
+        }
+
+        protected void Start()
+        {
+            // Retrieve and store ids of fields in compute shader
+            GetComputeShaderIds();
 
             //Stopwatch stopWatch = new Stopwatch();
-            stopWatch.Start();
-            time = stopWatch.Elapsed;
+            
             //UnityEngine.Random.InitState(DateTime.Now.Millisecond);
             UnityEngine.Random.InitState(42);
             material = new Material(shader);
@@ -189,17 +194,18 @@ namespace VolumeRendering
 
             LogPipeline();
 
-
-            stopWatch.Stop();
-            print(stopWatch.Elapsed);
-
         }
 
         // create the gaussian and laplacian of gaussian distributions
         private void LogPipeline()
         {
+            stopWatch.Start();
+            time = stopWatch.Elapsed;
             //creation of the gaussian distribution
             gaussSpheres(positions, ref volumeGaus, kernelSize);
+
+            stopWatch.Stop();
+            print(stopWatch.Elapsed);
 
             //computing the LoG
             //_shape2 = applyLpoGConvolutionColor();
