@@ -509,6 +509,11 @@ namespace VolumeRendering
             // Array of color element: Similar to Color[] textureColors but each element is only a float3 (rgb).
             // Populate with existing color data from textureColors (getting only rgb of each element).
             ColorElement[] colorElementsArray = GetColorElementsArray(textureColors);
+            
+            // Create new compute buffer the length of textureColors for output
+            colorsBuffer = new ComputeBuffer(colorElementsArray.Length, 3 * 4);
+            // Set the color data to compute buffer
+            colorsBuffer.SetData(colorElementsArray);
 
             for (int i = 0; i < pointCloud.Length; i++)
             {
@@ -529,14 +534,6 @@ namespace VolumeRendering
                 int maxX = xCenter + kernelSize;
                 int zCenter = depthBin;
 
-                //////// SLOW (> 0.001s) ////////
-                // Create new compute buffer the length of textureColors for output
-                colorsBuffer = new ComputeBuffer(colorElementsArray.Length, 3 * 4);
-                // Set the color data to compute buffer
-                colorsBuffer.SetData(colorElementsArray);
-                ////////////////////////////////
-                
-
                 // Pass the necessary values to compute buffer to calculate color
                 UpdateGPUGaussianValues(minZ, maxZ, minY, maxY, minX, maxX, xCenter, yCenter, zCenter, texDepth, kernelSize, coefIntensity, mu, sigma);
 
@@ -551,26 +548,20 @@ namespace VolumeRendering
                 // Dispatch the compute shader
                 computeShader.Dispatch(0, groupsX, groupsY, groupsZ);
 
-                //////// SLOW (> 0.001s) ////////
-                // Create an empty output array to store the computed colors from compute shader
-                ColorElement[] outputElementsArray = new ColorElement[colorElementsArray.Length];
-                ////////////////////////////////
-                
-                //////// SLOW (> 0.001s) ////////
-                // Populate output array with the color data from compute buffer
-                colorsBuffer.GetData(outputElementsArray);
-                ////////////////////////////////
-                
-                // Release compute buffer for next point in point cloud
-                colorsBuffer.Release();
-                colorsBuffer = null;
-
-                //////// SLOW (> 0.001s) ////////
-                // Transfer data from ColorElement[] to Color[]
-                ColorElementsToTextureColors(outputElementsArray, textureColors);
-                ////////////////////////////////
             }
 
+            // Create an empty output array to store the computed colors from compute shader
+            ColorElement[] outputElementsArray = new ColorElement[colorElementsArray.Length];
+
+            // Populate output array with the color data from compute buffer
+            colorsBuffer.GetData(outputElementsArray);
+
+            // Release compute buffer for next point in point cloud
+            colorsBuffer.Release();
+            colorsBuffer = null;
+
+            // Transfer data from ColorElement[] to Color[]
+            ColorElementsToTextureColors(outputElementsArray, textureColors);
             _shapeGauss = textureColors;
         }
 
