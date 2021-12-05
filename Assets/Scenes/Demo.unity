@@ -731,6 +731,16 @@ Prefab:
       propertyPath: vibrateController
       value: 
       objectReference: {fileID: 1107487296}
+    - target: {fileID: 114409880586681352, guid: 64af4ec5b553ab848b7c61bdd7455f26,
+        type: 2}
+      propertyPath: computeShader
+      value: 
+      objectReference: {fileID: 7200000, guid: bb2a920336098ea4a9ccb2907ca91b9f, type: 3}
+    - target: {fileID: 114409880586681352, guid: 64af4ec5b553ab848b7c61bdd7455f26,
+        type: 2}
+      propertyPath: kernelSize
+      value: 5
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 64af4ec5b553ab848b7c61bdd7455f26, type: 2}
   m_IsPrefabParent: 0
@@ -2547,7 +2557,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16161740863d599419d4e38b5bbe160a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  data: {fileID: 4900000, guid: 1cca310e52a82e3429bdec9700ef2762, type: 3}
+  data: {fileID: 4900000, guid: 0793d56528a699b4dba1731d69170b31, type: 3}
   metadata: {fileID: 0}
 --- !u!4 &932807616
 Transform:
@@ -4916,9 +4926,9 @@ MonoBehaviour:
   zDimension:
     Attribute: z
     minFilter: 0
-    maxFilter: 0.99999994
+    maxFilter: 0.9999968
     minScale: 0
-    maxScale: 0.99999994
+    maxScale: 0.9999968
   attributeFilters: []
   xScatterplotMatrixDimensions: []
   yScatterplotMatrixDimensions: []

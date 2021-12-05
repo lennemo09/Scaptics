@@ -295,11 +295,6 @@ namespace VolumeRendering
 
             derivativeMemory = derivative;
 
-            for (int i = 0; i < 10; i++)
-            {
-                print(positions[i]);
-            }
-
         }
 
         // load the texture according to isLog
