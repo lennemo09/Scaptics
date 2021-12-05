@@ -118,8 +118,7 @@ namespace VolumeRendering
         protected void Start()
         {
             //Stopwatch stopWatch = new Stopwatch();
-            stopWatch.Start();
-            time = stopWatch.Elapsed;
+            
             //UnityEngine.Random.InitState(DateTime.Now.Millisecond);
             UnityEngine.Random.InitState(42);
             material = new Material(shader);
@@ -133,7 +132,7 @@ namespace VolumeRendering
             float[] ys = data["y"].Data;
             float[] zs = data["z"].Data;
 
-            data2 = InitialiseRandomData(size);
+            //data2 = InitialiseRandomData(size);
 
             positions = new Vector3[100];
 
@@ -159,26 +158,31 @@ namespace VolumeRendering
         // create the gaussian and laplacian of gaussian distributions
         private void LogPipeline()
         {
+            stopWatch.Start();
+            time = stopWatch.Elapsed;
             //creation of the gaussian distribution
             gaussSpheres(positions, ref volumeGaus, kernelSize);
 
-            //computing the LoG
-            _shape2 = applyLpoGConvolutionColor();
+            stopWatch.Stop();
+            print(stopWatch.Elapsed);
 
-            _shape3 = volumeLoG.GetPixels();
+            ////computing the LoG
+            //_shape2 = applyLpoGConvolutionColor();
 
-            for (int i = 0; i < volumeLoG.depth; i++)
-            {
-                for (int j = 0; j < volumeLoG.depth; j++)
-                {
-                    for (int k = 0; k < volumeLoG.depth; k++)
-                    {
-                        _shape3[(k * volumeLoG.depth * volumeLoG.depth) + j * volumeLoG.depth + i] = _shape2[i, j, k];
-                    }
-                }
-            }
+            //_shape3 = volumeLoG.GetPixels();
 
-            //apply color array to the Volume texture according to the filter
+            //for (int i = 0; i < volumeLoG.depth; i++)
+            //{
+            //    for (int j = 0; j < volumeLoG.depth; j++)
+            //    {
+            //        for (int k = 0; k < volumeLoG.depth; k++)
+            //        {
+            //            _shape3[(k * volumeLoG.depth * volumeLoG.depth) + j * volumeLoG.depth + i] = _shape2[i, j, k];
+            //        }
+            //    }
+            //}
+
+            ////apply color array to the Volume texture according to the filter
 
             IsLoG(isLog);
         }
@@ -414,7 +418,7 @@ namespace VolumeRendering
                 Vector3 center = new Vector3(xCenter, yCenter, depthBin);
 
                 float distanceMax = Vector3.Distance(new Vector3(xCenter - kernelSize, yCenter - kernelSize, depthBin - kernelSize), center);
-
+                                
                 for (int z = depthBin - kernelSize; z < depthBin + kernelSize; z++)
                 {
                     for (int x = xCenter - kernelSize; x < xCenter + kernelSize; x++)
