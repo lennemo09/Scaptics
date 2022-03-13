@@ -9,6 +9,7 @@ struct ColorElement
 };
 
 StructuredBuffer<float3> _PointsBuffer;
+StructuredBuffer<float> _hBuffer;
 RWStructuredBuffer<ColorElement> _ColorsBuffer;
 
 int _texDepth;

@@ -33,7 +33,7 @@ namespace VolumeRendering
 
         [SerializeField] protected Texture3D volumeGaus;
         [SerializeField] protected Texture3D volumeLoG;
-        public IATK.DataSource data;
+        public IATK.CSVDataSource data;
         private Vector3[] data2;
 
         // controller of which the position is taken
@@ -42,6 +42,9 @@ namespace VolumeRendering
 
         [SerializeField]
         private GameObject HapticPointer;
+
+        [SerializeField]
+        int _VolumeResolution = 512;
 
         //[SerializeField]
         //public OculusHaptics haptics;
@@ -120,6 +123,7 @@ namespace VolumeRendering
         ComputeShader computeShader;
         ComputeBuffer colorsBuffer;
         ComputeBuffer pointsBuffer;
+        ComputeBuffer hBuffer;
 
         // Gaussian GPU compute shader fields IDs
         int            
@@ -129,7 +133,8 @@ namespace VolumeRendering
             muId,
             sigmaId,
             colorsBufferId,
-            pointsBufferId;
+            pointsBufferId,
+            hBufferId;
 
         void GetComputeShaderIds()
         {            
@@ -140,6 +145,7 @@ namespace VolumeRendering
             sigmaId = Shader.PropertyToID("_sigma");
             colorsBufferId = Shader.PropertyToID("_ColorsBuffer");
             pointsBufferId = Shader.PropertyToID("_PointsBuffer");
+            hBufferId = Shader.PropertyToID("_hBuffer");
         }
 
         protected void Start()
@@ -154,8 +160,8 @@ namespace VolumeRendering
             material = new Material(shader);
             GetComponent<MeshFilter>().sharedMesh = Build();
             GetComponent<MeshRenderer>().sharedMaterial = material;
-            volumeGaus = CreateTexture3D(256);
-            volumeLoG = CreateTexture3D(256);
+            volumeGaus = CreateTexture3D(_VolumeResolution);
+            volumeLoG = CreateTexture3D(_VolumeResolution);
             // populateTexture(new Vector3[] { Vector3.one / 2f}, ref volume, 30);
 
             float[] xs = data["x"].Data;
@@ -437,6 +443,7 @@ namespace VolumeRendering
 
             computeShader.SetBuffer(0, colorsBufferId, colorsBuffer);
             computeShader.SetBuffer(0, pointsBufferId, pointsBuffer);
+            computeShader.SetBuffer(0, hBufferId, hBuffer);
         }
 
         struct ColorElement
@@ -470,11 +477,23 @@ namespace VolumeRendering
             }
         }
 
+        int[] MapHValuesToGPU()
+        {
+            // The spatial length of each axis is equivalent to 1 game unit and _VolumeResolution cells.
+            int[] mappedHKernels = new int[data["h"].Data.Length];
+
+            for (int i = 0; i < data["h"].Data.Length; i++)
+            {
+                float originalValue = (float) data.getOriginalValue(data["h"].Data[i], "h");
+                mappedHKernels[i] = Mathf.RoundToInt(originalValue);
+            }
+            return mappedHKernels;            
+        }
+
         // compute the gaussian distribution ant apply it to the texture
         public void gaussSpheres(Vector3[] pointCloud, ref Texture3D tex3D, int kernelSize)
         {
             int texDepth = tex3D.depth;
-
             //pull out the color array from the texture
             textureColors = tex3D.GetPixels();
 
@@ -492,6 +511,9 @@ namespace VolumeRendering
             // Set the point coords to compute buffer
             pointsBuffer.SetData(pointCloud);
 
+            hBuffer = new ComputeBuffer(pointCloud.Length, 4);
+            hBuffer.SetData(MapHValuesToGPU());
+
             // Pass the necessary values to compute buffer to calculate color
             UpdateGPUGaussianValues(texDepth, kernelSize, coefIntensity, mu, sigma);
 
@@ -503,7 +525,6 @@ namespace VolumeRendering
             computeShader.Dispatch(0, groupsX, 1, 1);
 
             ///// Finished GPU computations
-            ///
             // Create an empty output array to store the computed colors from compute shader
             ColorElement[] outputElementsArray = new ColorElement[colorElementsArray.Length];
 

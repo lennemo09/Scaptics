@@ -149,8 +149,8 @@
 						break;
 					}
 				}
-
-				return saturate(dst) * _Color;
+				return dst * _Color;
+				//return saturate(dst) * _Color;
 			}
 
 			ENDCG
