@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 using UnityEngine;
+using UnityEditor;
 using System.Diagnostics;
 
 namespace VolumeRendering
@@ -123,7 +124,7 @@ namespace VolumeRendering
         ComputeShader computeShader;
         ComputeBuffer colorsBuffer;
         ComputeBuffer pointsBuffer;
-        ComputeBuffer hBuffer;
+        ComputeBuffer kernelSizeBuffer;
 
         // Gaussian GPU compute shader fields IDs
         int            
@@ -134,7 +135,7 @@ namespace VolumeRendering
             sigmaId,
             colorsBufferId,
             pointsBufferId,
-            hBufferId;
+            kernelSizeBufferId;
 
         void GetComputeShaderIds()
         {            
@@ -145,7 +146,7 @@ namespace VolumeRendering
             sigmaId = Shader.PropertyToID("_sigma");
             colorsBufferId = Shader.PropertyToID("_ColorsBuffer");
             pointsBufferId = Shader.PropertyToID("_PointsBuffer");
-            hBufferId = Shader.PropertyToID("_hBuffer");
+            kernelSizeBufferId = Shader.PropertyToID("_KernelSizeBuffer");
         }
 
         protected void Start()
@@ -169,8 +170,6 @@ namespace VolumeRendering
             float[] zs = data["z"].Data;
 
             //data2 = InitialiseRandomData(size);
-
-            positions = new Vector3[100];
 
             positions = new Vector3[data[0].Data.Length];
             for (int i = 0; i < positions.Length; i++)
@@ -432,10 +431,10 @@ namespace VolumeRendering
             else return -1f;
         }
 
-        void UpdateGPUGaussianValues(int texDepth, int kernelSize, float coefIntensity, float mu, float sigma)
+        void UpdateGPUGaussianValues(int texDepth, float coefIntensity, float mu, float sigma)
         {
             computeShader.SetInt(texDepthId, texDepth);
-            computeShader.SetInt(kernelSizeId, kernelSize);
+            //computeShader.SetInt(kernelSizeId, kernelSize);
 
             computeShader.SetFloat(coefIntensityId, coefIntensity);
             computeShader.SetFloat(muId, mu);
@@ -443,7 +442,7 @@ namespace VolumeRendering
 
             computeShader.SetBuffer(0, colorsBufferId, colorsBuffer);
             computeShader.SetBuffer(0, pointsBufferId, pointsBuffer);
-            computeShader.SetBuffer(0, hBufferId, hBuffer);
+            computeShader.SetBuffer(0, kernelSizeBufferId, kernelSizeBuffer);
         }
 
         struct ColorElement
@@ -480,14 +479,38 @@ namespace VolumeRendering
         int[] MapHValuesToGPU()
         {
             // The spatial length of each axis is equivalent to 1 game unit and _VolumeResolution cells.
-            int[] mappedHKernels = new int[data["h"].Data.Length];
+            int[] mappedKernelSizes = new int[data["h"].Data.Length];
+
+            // Assuming the data cube is 1x1x1 in Unity unit in size,
+            float cellSideLength = 1 / _VolumeResolution;
+
+            // Length of cube in spatial units of the data.
+            // This assumes the ranges of x,y,z in the data are the same.
+            float cubeLength = (float)data.getMaxOriginalValue("x") - (float)data.getMinOriginalValue("x");
+
+            // Considering h value to be the standard deviation
+            // Include 3 standard deviations ~ 99.7%
+            int sigmaIncluded = 3;
 
             for (int i = 0; i < data["h"].Data.Length; i++)
             {
-                float originalValue = (float) data.getOriginalValue(data["h"].Data[i], "h");
-                mappedHKernels[i] = Mathf.RoundToInt(originalValue);
+                float h = (float) data.getOriginalValue(data["h"].Data[i], "h");
+
+                // h in Unity unit = h/cubeLength -> h in number of cells = (h/cubeLength) * _VolumeResolution
+                // The kernel size will be 2 * (h in number of cells), because particle radius is half kernel size
+                // = 2 * sigmaIncluded * h_cells
+                int k = Mathf.CeilToInt(2 * sigmaIncluded * _VolumeResolution * h / cubeLength);
+                //mappedKernelSizes[i] = (k >= 3) ? k : 3;
+                if (k>=90) {
+                    k = 0;
+                } else {
+                    mappedKernelSizes[i] = (k >= 3) ? k : 3;
+                }
+                
             }
-            return mappedHKernels;            
+
+            //print(mappedKernelSizes[0]);
+            return mappedKernelSizes;            
         }
 
         // compute the gaussian distribution ant apply it to the texture
@@ -511,11 +534,12 @@ namespace VolumeRendering
             // Set the point coords to compute buffer
             pointsBuffer.SetData(pointCloud);
 
-            hBuffer = new ComputeBuffer(pointCloud.Length, 4);
-            hBuffer.SetData(MapHValuesToGPU());
+            int[] kernelSizeArray = MapHValuesToGPU();
+            kernelSizeBuffer = new ComputeBuffer(kernelSizeArray.Length, 4);
+            kernelSizeBuffer.SetData(kernelSizeArray);
 
             // Pass the necessary values to compute buffer to calculate color
-            UpdateGPUGaussianValues(texDepth, kernelSize, coefIntensity, mu, sigma);
+            UpdateGPUGaussianValues(texDepth, coefIntensity, mu, sigma);
 
             // Number of groups (1-D array of points split into 1024 sections
             // There will be 1024x1x1 = 1024x1x1 threads for each warp.
@@ -539,6 +563,8 @@ namespace VolumeRendering
             ColorElementsToTextureColors(outputElementsArray, textureColors);
 
             _shapeGauss = textureColors;
+
+            //AssetDatabase.CreateAsset(tex3D, "Assets/Generated3DTextures/HD-tiny_400x.asset");
         }
 
         // return an array of color after application of the LoG

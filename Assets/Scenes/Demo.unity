@@ -192,6 +192,11 @@ Prefab:
       propertyPath: coefIntensity
       value: 0.0005
       objectReference: {fileID: 0}
+    - target: {fileID: 114409880586681352, guid: 64af4ec5b553ab848b7c61bdd7455f26,
+        type: 2}
+      propertyPath: _VolumeResolution
+      value: 256
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 64af4ec5b553ab848b7c61bdd7455f26, type: 2}
   m_IsPrefabParent: 0
@@ -404,7 +409,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16161740863d599419d4e38b5bbe160a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  data: {fileID: 4900000, guid: 454cc4820f010c44ea54e6a530ab80a7, type: 3}
+  data: {fileID: 4900000, guid: 356c1483ec293a145b6a32c7282e64ee, type: 3}
   metadata: {fileID: 0}
 --- !u!4 &932807616
 Transform:

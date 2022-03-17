@@ -9,11 +9,10 @@ struct ColorElement
 };
 
 StructuredBuffer<float3> _PointsBuffer;
-StructuredBuffer<float> _hBuffer;
+StructuredBuffer<int> _KernelSizeBuffer;
 RWStructuredBuffer<ColorElement> _ColorsBuffer;
 
 int _texDepth;
-int _kernelSize;
 
 float _coefIntensity;
 float _mu;
@@ -56,18 +55,20 @@ void SetColor(int i) {
 	center.y = yCenter;
 	center.z = depthBin;
 
+	int kernelSize = _KernelSizeBuffer[i];
+
 	float3 origin;
-	origin.x = xCenter - _kernelSize;
-	origin.y = yCenter - _kernelSize;
-	origin.z = depthBin - _kernelSize;
+	origin.x = xCenter - kernelSize;
+	origin.y = yCenter - kernelSize;
+	origin.z = depthBin - kernelSize;
 
 	float distanceMax = distance(origin, center);
 
-	for (int z = origin.z; z < depthBin + _kernelSize; z++)
+	for (int z = origin.z; z < depthBin + kernelSize; z++)
 	{
-		for (int x = origin.x; x < xCenter + _kernelSize; x++)
+		for (int x = origin.x; x < xCenter + kernelSize; x++)
 		{
-			for (int y = origin.y; y < yCenter + _kernelSize; y++)
+			for (int y = origin.y; y < yCenter + kernelSize; y++)
 			{
 				//test we are still in the matrix:
 				if (z >= 0 && z < _texDepth && x >= 0 && x < _texDepth && y >= 0 && y < _texDepth)
@@ -77,7 +78,7 @@ void SetColor(int i) {
 					kernelPoint.y = y;
 					kernelPoint.z = z;
 
-					if (brushSphere(center, (float)_kernelSize, kernelPoint))
+					if (brushSphere(center, (float)kernelSize, kernelPoint))
 					{
 						float dist = distance(kernelPoint, center);
 						dist = dist / distanceMax;
